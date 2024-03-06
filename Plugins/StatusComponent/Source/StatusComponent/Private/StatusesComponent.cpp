@@ -21,16 +21,16 @@ UStatusesComponent::UStatusesComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
-const bool UStatusesComponent::GetIsContainTag(FGameplayTag TagToFind, bool ExactCheck, bool InverseCondition) const
+bool UStatusesComponent::GetIsContainTag(FGameplayTag TagToFind, bool ExactCheck, bool InverseCondition) const
 {
-    bool Result = ExactCheck ? Statuses.HasTagExact(TagToFind) : Statuses.HasTag(TagToFind);
+    const bool Result = ExactCheck ? Statuses.HasTagExact(TagToFind) : Statuses.HasTag(TagToFind);
     return InverseCondition ? !Result : Result;
 }
 
-const bool UStatusesComponent::GetIsContainTags(FGameplayTagContainer TagsToFind, bool CheckAll, bool ExactCheck, bool InverseCondition) const
+bool UStatusesComponent::GetIsContainTags(FGameplayTagContainer TagsToFind, bool CheckAll, bool ExactCheck, bool InverseCondition) const
 {
-    bool ResultExactCheck = CheckAll ? Statuses.HasAllExact(TagsToFind) : Statuses.HasAnyExact(TagsToFind);
-    bool ResultNotExactCheck = CheckAll ? Statuses.HasAll(TagsToFind) : Statuses.HasAny(TagsToFind);
+    const bool ResultExactCheck = CheckAll ? Statuses.HasAllExact(TagsToFind) : Statuses.HasAnyExact(TagsToFind);
+    const bool ResultNotExactCheck = CheckAll ? Statuses.HasAll(TagsToFind) : Statuses.HasAny(TagsToFind);
     if(ExactCheck) return InverseCondition ? !ResultExactCheck : ResultExactCheck;
     return InverseCondition ? !ResultNotExactCheck : ResultNotExactCheck;
 }
@@ -47,7 +47,7 @@ bool UStatusesComponent::AddStatuses(FGameplayTagContainer TagsToAdd)
 {
     if(GetIsContainTags(TagsToAdd,true,true) || !TagsToAdd.IsValid()) return false;
     Statuses.AppendTags(TagsToAdd);
-    for(auto Tag : TagsToAdd) OnAddStatus.Broadcast(Tag);
+    for(const auto Tag : TagsToAdd) OnAddStatus.Broadcast(Tag);
     OnAddStatuses.Broadcast(TagsToAdd);
     return true;
 }
@@ -84,19 +84,30 @@ bool UStatusesComponent::AddTemporaryStatuses(FGameplayTagContainer TagsToAdd, c
 {
     if(!GetWorld() || !TagsToAdd.IsValid()) return false;
     bool bLocalResult = false;
-    bool bLocalFlag;
     for(auto Tag : TagsToAdd)
     {
-        bLocalFlag = MakeTemporaryTag(Tag,TimeToDeleteTags,bClearTimer);
+        const bool bLocalFlag = MakeTemporaryTag(Tag,TimeToDeleteTags,bClearTimer);
         if(bLocalFlag && !bLocalResult) bLocalResult = true;
     }
     return bLocalResult;
 }
 
-void UStatusesComponent::ClearTemporaryTagTimer(FGameplayTag& TagToClear)
+bool UStatusesComponent::AddTemporaryStatusesWithInfo(TArray<FTemporaryStatusesInfo> TagsToAdd)
 {
-    auto bIsContainTemporaryTag = TemporaryTags.Contains(TagToClear);
-    if(bIsContainTemporaryTag)
+    if(TagsToAdd.IsEmpty()) return false;
+    bool bLocalResult = false;
+    for(auto TagContainerToAdd : TagsToAdd)
+    {
+        if(TagContainerToAdd.TemporaryStatuses.IsEmpty()) continue;
+        const bool bLocalFlag = AddTemporaryStatuses(TagContainerToAdd.TemporaryStatuses, TagContainerToAdd.TemporaryTimeForTags, TagContainerToAdd.bIsClearTimer);
+        if(bLocalFlag && !bLocalResult) bLocalResult = true;
+    }
+    return bLocalResult;
+}
+
+void UStatusesComponent::ClearTemporaryTagTimer(FGameplayTag TagToClear)
+{
+    if(TemporaryTags.Contains(TagToClear))
     {
         FTimerHandle& LocalTimerHandle = TemporaryTags.FindChecked(TagToClear);
         GetWorld()->GetTimerManager().ClearTimer(LocalTimerHandle);
