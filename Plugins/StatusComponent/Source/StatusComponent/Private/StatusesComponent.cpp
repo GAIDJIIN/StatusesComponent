@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Statuses Component by GAIDJIIN
 
 
 #include "StatusesComponent.h"
@@ -19,6 +19,14 @@ void UStatusesComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 UStatusesComponent::UStatusesComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+}
+
+bool UStatusesComponent::GetStatusState(FGameplayTag TagToCheck, TEnumAsByte<EStatusState>& StatusState) const
+{
+    if(!GetIsContainTag(TagToCheck)) return false;
+    StatusState = Constant;
+    if(TemporaryTags.Contains(TagToCheck)) StatusState = Temporary;
+    return true;
 }
 
 bool UStatusesComponent::GetIsContainTag(FGameplayTag TagToFind, bool ExactCheck, bool InverseCondition) const
@@ -99,7 +107,7 @@ bool UStatusesComponent::AddTemporaryStatusesWithInfo(TArray<FTemporaryStatusesI
     for(auto TagContainerToAdd : TagsToAdd)
     {
         if(TagContainerToAdd.TemporaryStatuses.IsEmpty()) continue;
-        const bool bLocalFlag = AddTemporaryStatuses(TagContainerToAdd.TemporaryStatuses, TagContainerToAdd.TemporaryTimeForTags, TagContainerToAdd.bIsClearTimer);
+        const bool bLocalFlag = AddTemporaryStatuses(TagContainerToAdd.TemporaryStatuses, TagContainerToAdd.TemporaryTimeForStatuses, TagContainerToAdd.bIsClearTimer);
         if(bLocalFlag && !bLocalResult) bLocalResult = true;
     }
     return bLocalResult;
@@ -126,6 +134,10 @@ bool UStatusesComponent::MakeTemporaryTag(FGameplayTag TagToAdd, const float Tim
     GetWorld()->GetTimerManager().SetTimer(LocalHandle,TemporaryTagDelegate,TimeToDeleteTag,false);
     TemporaryTags.Add(TagToAdd,LocalHandle);
     return true;
+}
+
+void UStatusesComponent::ApplyTagLogic()
+{
 }
 
 // Debug
