@@ -13,22 +13,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAddStatuses,FGameplayTagContainer
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRemoveStatus,FGameplayTag,RemoveStatus);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRemoveStatuses,FGameplayTagContainer,RemoveStatuses);
 
-USTRUCT(BlueprintType)
-struct FTemporaryStatusesInfo
-{
-    GENERATED_USTRUCT_BODY()
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Statuses Component")
-        FGameplayTagContainer TemporaryStatuses;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Statuses Component")
-        float TemporaryTimeForStatuses = 0.00001f;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Statuses Component")
-        bool bIsClearTimer = false;
-    
-    FTemporaryStatusesInfo() {}
-    FTemporaryStatusesInfo(FGameplayTagContainer NewTemporaryStatuses, const float NewTemporaryTimeForStatuses, const bool bNewIsClearTimer) :
-    TemporaryStatuses(NewTemporaryStatuses), TemporaryTimeForStatuses(FMath::Max(0.00001f, NewTemporaryTimeForStatuses)), bIsClearTimer(bNewIsClearTimer) {}
-};
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class STATUSCOMPONENT_API UStatusesComponent : public UActorComponent
 {
@@ -39,32 +23,24 @@ public:
     
     // Getter
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
-        bool GetStatusState(FGameplayTag TagToCheck, TEnumAsByte<EStatusState>& StatusState) const;
+        bool GetStatusesInfo(FGameplayTagContainer StatusesToGet, TArray<FStatusesInfo>& ReturnStatuses) const;
+    UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
+        bool GetStatusState(FGameplayTag StatusToCheck, TEnumAsByte<EStatusState>& StatusState) const;
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
         FGameplayTagContainer& GetStatuses() {return Statuses;}
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
-        bool GetIsContainTag(FGameplayTag TagToFind, bool ExactCheck = true, bool InverseCondition = false) const;
+        bool GetIsContainStatus(FGameplayTag StatusToFind, bool ExactCheck = true, bool InverseCondition = false) const;
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
-        bool GetIsContainTags(FGameplayTagContainer TagsToFind, bool CheckAll = false,bool ExactCheck = true, bool InverseCondition = false) const;
+        bool GetIsContainStatuses(FGameplayTagContainer StatusesToFind, bool CheckAll = false,bool ExactCheck = true, bool InverseCondition = false) const;
 
     // Setter
+    // Blueprint
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Add Logic")
-        bool AddStatus(FGameplayTag TagToAdd);
-    UFUNCTION(BlueprintCallable, Category="Statuses Component|Add Logic")
-        bool AddStatuses(FGameplayTagContainer TagsToAdd);
-    UFUNCTION(BlueprintCallable, Category="Statuses Component|Add Logic")
-        bool AddTemporaryStatus(FGameplayTag TagToAdd, const float TimeToDeleteTag, const bool bClearTimer = false);
-    UFUNCTION(BlueprintCallable, Category="Statuses Component|Add Logic")
-        bool AddTemporaryStatusesWithInfo(TArray<FTemporaryStatusesInfo> TagsToAdd);
-    UFUNCTION(BlueprintCallable, Category="Statuses Component|Add Logic")
-        bool AddTemporaryStatuses(FGameplayTagContainer TagsToAdd, const float TimeToDeleteTags, const bool bClearTimer = false);
+        bool AddStatusesWithInfo(FStatusesInfoArray StatusesToAdd);
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Remove Logic")
-        bool RemoveStatus(FGameplayTag TagToRemove);
-    UFUNCTION(BlueprintCallable, Category="Statuses Component|Remove Logic")
-        bool RemoveStatuses(FGameplayTagContainer TagsToRemove);
+        bool RemoveStatuses(FGameplayTagContainer StatusesToRemove);
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Remove Logic")
         void RemoveAllStatuses() { RemoveStatuses(Statuses); }
-
     // Delegates
     UPROPERTY(BlueprintAssignable, Category="Statuses Component|Delegates")
         FOnAddStatus OnAddStatus;
@@ -84,18 +60,21 @@ public:
 private:
     // Variables
     FGameplayTagContainer Statuses;
-    
+    TMap<FGameplayTag,FTimerHandle> TemporaryTags;
+
+    // Debug
     UPROPERTY(EditAnywhere, Category="Statuses Component", meta=(bAllowPrivateAccess))
         bool bShowDebug = false;
-    // Functions
     void ShowDebug();
-
-    // Service
-    // Variables
-    TMap<FGameplayTag,FTimerHandle> TemporaryTags;
     
     // Functions
-    void ClearTemporaryTagTimer(FGameplayTag TagToClear);
-    bool MakeTemporaryTag(FGameplayTag TagToAdd, const float TimeToDeleteTag, const bool bClearTimer);
-    void ApplyTagLogic();
+    void ClearTemporaryStatusTimer(FGameplayTag StatusToClear);
+    bool MakeTemporaryStatus(FGameplayTag StatusToAdd, const float TimeToDeleteStatus, const bool bClearTimer);
+    void ApplyStatusLogic();
+    bool AddStatus(FGameplayTag StatusToAdd);
+    bool AddStatuses(FGameplayTagContainer StatusesToAdd);
+    bool AddTemporaryStatus(FGameplayTag StatusToAdd, const float TimeToDeleteStatus, const bool bClearTimer = false);
+    bool AddTemporaryStatuses(FGameplayTagContainer StatusesToAdd, const float TimeToDeleteStatuses, const bool bClearTimer = false);
+    
+    bool GetStatusInfo(FGameplayTag StatusToGet, FStatusesInfo& ReturnStatusInfo) const;
 };
