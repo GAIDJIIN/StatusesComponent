@@ -8,9 +8,8 @@
 #include "StatusesInfo.h"
 #include "StatusesComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAddStatus,FGameplayTag, AddStatus);
+// Declare delegates for statuses
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAddStatuses,FGameplayTagContainer, AddStatuses);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRemoveStatus,FGameplayTag,RemoveStatus);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRemoveStatuses,FGameplayTagContainer,RemoveStatuses);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -20,61 +19,70 @@ class STATUSCOMPONENT_API UStatusesComponent : public UActorComponent
 
 public:	
 	UStatusesComponent();
+
+    // Blueprint access main functions
     
     // Getter
+    // Get Statuses Info
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
-        bool GetStatusesInfo(FGameplayTagContainer StatusesToGet, TArray<FStatusesInfo>& ReturnStatuses) const;
+        bool GetStatusesInfo(const FGameplayTagContainer& StatusesToGet, TArray<FStatusesInfo>& ReturnStatuses) const;
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
-        bool GetStatusState(FGameplayTag StatusToCheck, TEnumAsByte<EStatusState>& StatusState) const;
+        bool GetStatusState(const FGameplayTag& StatusToCheck, TEnumAsByte<EStatusState>& StatusState) const;
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
-        FGameplayTagContainer& GetStatuses() {return Statuses;}
+        const FGameplayTagContainer& GetStatuses() const {return Statuses;}
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
-        bool GetIsContainStatus(FGameplayTag StatusToFind, bool ExactCheck = true, bool InverseCondition = false) const;
+        bool GetAllStatusesInfo(TArray<FStatusesInfo>& ReturnStatusesInfo) const;
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
-        bool GetIsContainStatuses(FGameplayTagContainer StatusesToFind, bool CheckAll = false,bool ExactCheck = true, bool InverseCondition = false) const;
+        bool GetIsContainStatus(const FGameplayTag& StatusToFind, const bool ExactCheck = true, const bool InverseCondition = false) const;
+    UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
+        bool GetIsContainStatuses(const FGameplayTagContainer& StatusesToFind, const bool CheckAll = false, const bool ExactCheck = true, const bool InverseCondition = false) const;
 
+    // Get Debug Info
+    UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter|Debug Info")
+        const FText GetStatusesReadableText(const FGameplayTagContainer StatusesToText) const;
+    
     // Setter
-    // Blueprint
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Add Logic")
-        bool AddStatusesWithInfo(FStatusesInfoArray StatusesToAdd);
+        bool AddStatusesWithInfo(const FStatusesInfoArray& StatusesToAdd);
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Remove Logic")
-        bool RemoveStatuses(FGameplayTagContainer StatusesToRemove);
+        bool RemoveStatuses(const FGameplayTagContainer StatusesToRemove);
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Remove Logic")
-        void RemoveAllStatuses() { RemoveStatuses(Statuses); }
+        bool RemoveAllStatuses() { return RemoveStatuses(Statuses); }
+    
     // Delegates
-    UPROPERTY(BlueprintAssignable, Category="Statuses Component|Delegates")
-        FOnAddStatus OnAddStatus;
     UPROPERTY(BlueprintAssignable, Category="Statuses Component|Delegates")
         FOnAddStatuses OnAddStatuses;
     UPROPERTY(BlueprintAssignable, Category="Statuses Component|Delegates")
-        FOnRemoveStatus OnRemoveStatus;
-    UPROPERTY(BlueprintAssignable, Category="Statuses Component|Delegates")
         FOnRemoveStatuses OnRemoveStatuses;
     
-protected:
-	virtual void BeginPlay() override;
-
-public:	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
     // Variables
+
+    // Statuses Info
     FGameplayTagContainer Statuses;
     TMap<FGameplayTag,FTimerHandle> TemporaryTags;
 
+    // Functions
+    
     // Debug
     UPROPERTY(EditAnywhere, Category="Statuses Component", meta=(bAllowPrivateAccess))
         bool bShowDebug = false;
     void ShowDebug();
+
+    // Temporary Logic
+    bool ClearTemporaryStatusTimer(const FGameplayTag& StatusToClear);
+    bool MakeTemporaryStatus(const FGameplayTag& StatusToAdd, const float TimeToDeleteStatus, const bool bClearTimer);
     
-    // Functions
-    void ClearTemporaryStatusTimer(FGameplayTag StatusToClear);
-    bool MakeTemporaryStatus(FGameplayTag StatusToAdd, const float TimeToDeleteStatus, const bool bClearTimer);
+    // Apply Status Logic
     void ApplyStatusLogic();
-    bool AddStatus(FGameplayTag StatusToAdd);
-    bool AddStatuses(FGameplayTagContainer StatusesToAdd);
-    bool AddTemporaryStatus(FGameplayTag StatusToAdd, const float TimeToDeleteStatus, const bool bClearTimer = false);
-    bool AddTemporaryStatuses(FGameplayTagContainer StatusesToAdd, const float TimeToDeleteStatuses, const bool bClearTimer = false);
     
-    bool GetStatusInfo(FGameplayTag StatusToGet, FStatusesInfo& ReturnStatusInfo) const;
+    // Getter
+    bool GetStatusInfo(const FGameplayTag& StatusToGet, FStatusesInfo& ReturnStatusInfo) const;
+
+    // Add Logic
+    bool AddStatus(const FGameplayTag& StatusToAdd);
+    bool AddStatuses(const FGameplayTagContainer& StatusesToAdd);
+    bool AddTemporaryStatuses(const FGameplayTagContainer& StatusesToAdd, const float TimeToDeleteStatuses, const bool bClearTimer = false);
 };

@@ -50,23 +50,23 @@ struct FStatusesInfoArray
 { 
 	GENERATED_USTRUCT_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Statuses Component")
-	TArray<FStatusesWithAddInfo> StatusesInfo;
+		TArray<FStatusesWithAddInfo> StatusesInfo;
 	
 	FStatusesInfoArray() {}
 	FStatusesInfoArray(const TArray<FStatusesWithAddInfo> NewStatuses) : StatusesInfo(NewStatuses) {}
 };
 
-USTRUCT(BlueprintType)
+USTRUCT(BlueprintType, meta=(DisplayName="ResultLogicInfo"))
 struct FApplyLogicInfo
 {
 	GENERATED_USTRUCT_BODY()
 	UPROPERTY(EditAnywhere, Instanced, BlueprintReadWrite, Category="Statuses Component")
 		TObjectPtr<UApplyTagLogicObject> ApplyTagLogicObject = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Statuses Component")
-		FStatusesInfo ResultInfo;
+		TArray<FStatusesInfo> ResultInfo;
 	
 	FApplyLogicInfo() {}
-	FApplyLogicInfo(const TObjectPtr<UApplyTagLogicObject> NewApplyTagLogicObject, const FStatusesInfo NewResultInfo) :
+	FApplyLogicInfo(const TObjectPtr<UApplyTagLogicObject> NewApplyTagLogicObject, const TArray<FStatusesInfo> NewResultInfo) :
 	ApplyTagLogicObject(NewApplyTagLogicObject), ResultInfo(NewResultInfo) {}
 };
 
@@ -75,7 +75,7 @@ struct FApplyLogicInfoArray
 {
 	GENERATED_USTRUCT_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Statuses Component")
-	TArray<FApplyLogicInfo> ApplyLogicInfoArray;
+		TArray<FApplyLogicInfo> ApplyLogicInfoArray;
 
 	FApplyLogicInfoArray() {}
 	FApplyLogicInfoArray(const TArray<FApplyLogicInfo> NewApplyLogicInfoArray) :
@@ -100,12 +100,12 @@ struct FApplicableStatusInfoByState
 	GENERATED_USTRUCT_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Statuses Component")
 		FGameplayTagContainer ApplicableStatuses;
-	// Apply Logic To All Statuses (add, remove and etc)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Statuses Component", meta=(EditCondition="bCompareAllStatuses",EditConditionHides))
-		bool bApplyToAllStatuses = false;
 	// Check All statuses to Apply
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Statuses Component")
-		bool bCompareAllStatuses = false;
+		bool bCheckAllStatuses = false;
+	// For select a more preferred tag application based on priority (the higher the priority, the more preferable)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Statuses Component")
+		int32 ApplyPriority = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Statuses Component")
 		FApplicableStatusesInfo StatusApplyInfo;
 	
@@ -139,7 +139,7 @@ struct FApplyStatusInfoByState
 };
 
 // Struct for setup apply statuses by DataTable
-USTRUCT(BlueprintType)
+USTRUCT(BlueprintType, meta=(DisplayName="ResultLogicInfo"))
 struct FApplyStatusInfo : public FTableRowBase
 {
 	GENERATED_USTRUCT_BODY()
