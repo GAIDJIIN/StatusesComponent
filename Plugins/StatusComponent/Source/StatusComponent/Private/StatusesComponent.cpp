@@ -2,6 +2,8 @@
 
 
 #include "StatusesComponent.h"
+
+#include "StatusApplyInfoDA.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetStringLibrary.h"
 
@@ -105,19 +107,15 @@ bool UStatusesComponent::GetIsContainStatuses(const FGameplayTagContainer& Statu
 bool UStatusesComponent::AddStatusesWithInfo(const FStatusesInfoArray& StatusesToAdd)
 {
 	if (StatusesToAdd.StatusesInfo.IsEmpty()) return false;
-	FGameplayTagContainer LocalResultAddedStatuses;
 	bool bLocalResult = false;
+	
+	// Filter Get Can added tag container for call delegate added tags
+	TArray<FGameplayTag> LocalOldStatusesArray;
+	Statuses.GetGameplayTagArray(LocalOldStatusesArray);
+	
 	for (auto StatusContainerToAdd : StatusesToAdd.StatusesInfo)
 	{
 		if (StatusContainerToAdd.StatusesInfo.Statuses.IsEmpty()) continue;
-
-		// Filter Get Can added tag container for call delegate added tags
-		const auto LocalArrayToAdd = StatusContainerToAdd.StatusesInfo.Statuses.GetGameplayTagArray();
-		const auto LocalAddedStatuses = LocalArrayToAdd.FilterByPredicate([&](const FGameplayTag LocalFindedTag)
-		{
-			return !GetIsContainStatus(LocalFindedTag);
-		});
-		
 		bool bLocalFlag = false;
 		switch (StatusContainerToAdd.StatusesInfo.StatusesState)
 		{
@@ -131,20 +129,27 @@ bool UStatusesComponent::AddStatusesWithInfo(const FStatusesInfoArray& StatusesT
 		default:
 			break;
 		}
-		if(bLocalFlag)
-		{
-			LocalResultAddedStatuses.AppendTags(FGameplayTagContainer::CreateFromArray(LocalAddedStatuses));
-			bLocalResult = true;
-		}
-		
+		if(bLocalFlag) bLocalResult = true;
 	}
-	if (bLocalResult) OnAddStatuses.Broadcast(LocalResultAddedStatuses);
+
+	// Check New Gameplay Tag
+	TArray<FGameplayTag> LocalNewStatusesArray;
+	Statuses.GetGameplayTagArray(LocalNewStatusesArray);
+	const auto LocalAddedStatuses = FGameplayTagContainer::CreateFromArray(
+		LocalNewStatusesArray.FilterByPredicate([&](const FGameplayTag LocalFindedTag)
+		{
+			return !LocalOldStatusesArray.Contains(LocalFindedTag);
+		})
+		);
+	
+	if (bLocalResult && !LocalAddedStatuses.IsEmpty()) OnAddStatuses.Broadcast(LocalAddedStatuses);
 	return bLocalResult;
 }
 
 bool UStatusesComponent::AddStatus(const FGameplayTag& StatusToAdd)
 {
 	if (GetIsContainStatus(StatusToAdd, true) || !StatusToAdd.IsValid()) return false;
+	if(ApplyStatusLogic(StatusToAdd)) return false;
 	Statuses.AddTag(StatusToAdd);
 	return true;
 }
@@ -152,13 +157,7 @@ bool UStatusesComponent::AddStatus(const FGameplayTag& StatusToAdd)
 bool UStatusesComponent::AddStatuses(const FGameplayTagContainer& StatusesToAdd)
 {
 	if (GetIsContainStatuses(StatusesToAdd, true, true) || !StatusesToAdd.IsValid()) return false;
-	FGameplayTagContainer AddedTags;
-	for (auto Tag : StatusesToAdd)
-	{
-		if (GetIsContainStatus(Tag)) continue;
-		AddedTags.AddTag(Tag);
-	}
-	Statuses.AppendTags(AddedTags);
+	for (auto Tag : StatusesToAdd) AddStatus(Tag);
 	return true;
 }
 
@@ -219,9 +218,20 @@ bool UStatusesComponent::MakeTemporaryStatus(const FGameplayTag& StatusToAdd, co
 
 // Apply Status Logic Object
 
-void UStatusesComponent::ApplyStatusLogic()
+bool UStatusesComponent::ApplyStatusLogic(const FGameplayTag& ApplyStatus, const TEnumAsByte<EStatusState> StatusState)
 {
 	// ZAGLUSHKA
+	if(!StatusApplyDA || !ApplyStatus.IsValid()) return false;
+	if(!StatusApplyDA->StatusInfo.Contains(ApplyStatus)) return false;
+	auto LocalApplyStatusInfo = StatusApplyDA->StatusInfo.FindRef(ApplyStatus);
+	if(!LocalApplyStatusInfo.StatusApplyInfo.Contains(StatusState)) return false;
+	auto LocalApplicableStatusInfo = LocalApplyStatusInfo.StatusApplyInfo.FindRef(StatusState);
+	LocalApplicableStatusInfo.ApplicableStatusInfoArray.Sort([]()
+	{
+		
+	});
+	
+	return false;
 }
 
 // Debug Logic
