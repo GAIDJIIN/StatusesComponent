@@ -146,18 +146,22 @@ bool UStatusesComponent::AddStatusesWithInfo(const FStatusesInfoArray& StatusesT
 	return bLocalResult;
 }
 
-bool UStatusesComponent::AddStatus(const FGameplayTag& StatusToAdd)
+bool UStatusesComponent::AddStatus(const FStatusesInfo& StatusToAdd)
 {
-	if (GetIsContainStatus(StatusToAdd, true) || !StatusToAdd.IsValid()) return false;
-	if(ApplyStatusLogic(StatusToAdd)) return false;
-	Statuses.AddTag(StatusToAdd);
+	if (GetIsContainStatuses(StatusToAdd.Statuses, true) || !StatusToAdd.Statuses.IsValid()) return false;
+	//if(ApplyStatusLogic(StatusToAdd, )) return false;
+	Statuses.AppendTags(StatusToAdd.Statuses);
 	return true;
 }
 
 bool UStatusesComponent::AddStatuses(const FGameplayTagContainer& StatusesToAdd)
 {
 	if (GetIsContainStatuses(StatusesToAdd, true, true) || !StatusesToAdd.IsValid()) return false;
-	for (auto Tag : StatusesToAdd) AddStatus(Tag);
+	for (auto Tag : StatusesToAdd)
+	{
+		FStatusesInfo LocalAddTag(Tag.GetSingleTagContainer());
+		AddStatus(LocalAddTag);
+	}
 	return true;
 }
 
@@ -205,7 +209,8 @@ bool UStatusesComponent::MakeTemporaryStatus(const FGameplayTag& StatusToAdd, co
                                              const bool bClearTimer)
 {
 	if(!GetWorld()) return false;
-	const bool bLocalAddStatus = AddStatus(StatusToAdd);
+	const FStatusesInfo LocalAddTempTag(StatusToAdd.GetSingleTagContainer(),EStatusState::Temporary,TimeToDeleteStatus);
+	const bool bLocalAddStatus = AddStatus(LocalAddTempTag);
 	if (!bClearTimer && !bLocalAddStatus) return false;
 	ClearTemporaryStatusTimer(StatusToAdd);
 	FTimerHandle LocalHandle;
@@ -220,16 +225,15 @@ bool UStatusesComponent::MakeTemporaryStatus(const FGameplayTag& StatusToAdd, co
 
 bool UStatusesComponent::ApplyStatusLogic(const FGameplayTag& ApplyStatus, const TEnumAsByte<EStatusState> StatusState)
 {
-	// ZAGLUSHKA
 	if(!StatusApplyDA || !ApplyStatus.IsValid()) return false;
 	if(!StatusApplyDA->StatusInfo.Contains(ApplyStatus)) return false;
 	auto LocalApplyStatusInfo = StatusApplyDA->StatusInfo.FindRef(ApplyStatus);
 	if(!LocalApplyStatusInfo.StatusApplyInfo.Contains(StatusState)) return false;
 	auto LocalApplicableStatusInfo = LocalApplyStatusInfo.StatusApplyInfo.FindRef(StatusState);
-	LocalApplicableStatusInfo.ApplicableStatusInfoArray.Sort([]()
+	/*LocalApplicableStatusInfo.ApplicableStatusInfoArray.Sort([]()
 	{
 		
-	});
+	});*/
 	
 	return false;
 }

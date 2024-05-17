@@ -89,10 +89,12 @@ private:
 
     // Add Logic
     /*
+     * BETA
      * bIsFastAdd - if true check ApplyTagLogic from StatusApplyDA
      * USE FAST ADD IN ApplyTagLogicObject use bIsFastAdd = true!!!!
      */
-    bool AddStatus(const FGameplayTag& StatusToAdd);
+    
+    bool AddStatus(const FStatusesInfo& StatusToAdd);
     bool AddStatuses(const FGameplayTagContainer& StatusesToAdd);
     bool AddTemporaryStatuses(const FGameplayTagContainer& StatusesToAdd, const float TimeToDeleteStatuses, const bool bClearTimer = false);
 };
