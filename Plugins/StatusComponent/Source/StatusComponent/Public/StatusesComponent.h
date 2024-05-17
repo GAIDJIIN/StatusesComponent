@@ -8,8 +8,6 @@
 #include "StatusesInfo.h"
 #include "StatusesComponent.generated.h"
 
-// Forward declaration
-class UStatusApplyInfoDA;
 
 // Declare delegates for statuses
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAddStatuses,FGameplayTagContainer, AddStatuses);
@@ -31,6 +29,10 @@ public:
         bool GetStatusesInfo(const FGameplayTagContainer& StatusesToGet, TArray<FStatusesInfo>& ReturnStatuses) const;
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
         bool GetStatusState(const FGameplayTag& StatusToCheck, TEnumAsByte<EStatusState>& StatusState) const;
+    UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
+        bool GetStatusesInfoByState(const TEnumAsByte<EStatusState> StatusState, TArray<FStatusesInfo>& ReturnStatusesInfo) const;
+    UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
+        bool GetStatusesByState(const TEnumAsByte<EStatusState> StatusState, FGameplayTagContainer& ReturnStatuses) const;
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
         const FGameplayTagContainer& GetStatuses() const {return Statuses;}
     UFUNCTION(BlueprintCallable, Category="Statuses Component|Getter")
@@ -67,9 +69,6 @@ private:
     FGameplayTagContainer Statuses;
     TMap<FGameplayTag,FTimerHandle> TemporaryTags;
 
-    UPROPERTY(EditAnywhere, Category="Statuses Component|Status Info", meta=(bAllowPrivateAccess))
-        TObjectPtr<UStatusApplyInfoDA> StatusApplyDA;
-
     // Functions
     
     // Debug
@@ -81,19 +80,10 @@ private:
     bool ClearTemporaryStatusTimer(const FGameplayTag& StatusToClear);
     bool MakeTemporaryStatus(const FGameplayTag& StatusToAdd, const float TimeToDeleteStatus, const bool bClearTimer);
     
-    // Apply Status Logic
-    bool ApplyStatusLogic(const FGameplayTag& ApplyStatus, const TEnumAsByte<EStatusState> StatusState);
-    
     // Getter
     bool GetStatusInfo(const FGameplayTag& StatusToGet, FStatusesInfo& ReturnStatusInfo) const;
 
     // Add Logic
-    /*
-     * BETA
-     * bIsFastAdd - if true check ApplyTagLogic from StatusApplyDA
-     * USE FAST ADD IN ApplyTagLogicObject use bIsFastAdd = true!!!!
-     */
-    
     bool AddStatus(const FStatusesInfo& StatusToAdd);
     bool AddStatuses(const FGameplayTagContainer& StatusesToAdd);
     bool AddTemporaryStatuses(const FGameplayTagContainer& StatusesToAdd, const float TimeToDeleteStatuses, const bool bClearTimer = false);

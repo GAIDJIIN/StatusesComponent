@@ -2,8 +2,6 @@
 
 
 #include "StatusesComponent.h"
-
-#include "StatusApplyInfoDA.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetStringLibrary.h"
 
@@ -79,6 +77,32 @@ bool UStatusesComponent::GetStatusState(const FGameplayTag& StatusToCheck, TEnum
 	return true;
 }
 
+bool UStatusesComponent::GetStatusesInfoByState(const TEnumAsByte<EStatusState> StatusState,
+	TArray<FStatusesInfo>& ReturnStatusesInfo) const
+{
+	if(Statuses.IsEmpty()) return false;
+	TArray<FStatusesInfo> LocalReturnStatuses;
+	if(!GetStatusesInfo(Statuses,LocalReturnStatuses)) return false;
+	ReturnStatusesInfo.Empty();
+	ReturnStatusesInfo = LocalReturnStatuses.FilterByPredicate([&](const FStatusesInfo LocalStatus)
+	{ return LocalStatus.StatusesState == StatusState; });
+	return !ReturnStatusesInfo.IsEmpty();
+}
+
+bool UStatusesComponent::GetStatusesByState(const TEnumAsByte<EStatusState> StatusState,
+	FGameplayTagContainer& ReturnStatuses) const
+{
+	if(Statuses.IsEmpty()) return false;
+	TArray<FStatusesInfo> LocalReturnStatuses;
+	if(!GetStatusesInfo(Statuses,LocalReturnStatuses)) return false;
+	for(const auto LocalStatus : LocalReturnStatuses)
+	{
+		if(LocalStatus.StatusesState != StatusState) continue;
+		ReturnStatuses.AppendTags(LocalStatus.Statuses);
+	}
+	return !ReturnStatuses.IsEmpty();
+}
+
 bool UStatusesComponent::GetAllStatusesInfo(TArray<FStatusesInfo>& ReturnStatusesInfo) const
 {
 	const auto LocalStatusesInfo = GetStatusesInfo(Statuses, ReturnStatusesInfo);
@@ -149,7 +173,6 @@ bool UStatusesComponent::AddStatusesWithInfo(const FStatusesInfoArray& StatusesT
 bool UStatusesComponent::AddStatus(const FStatusesInfo& StatusToAdd)
 {
 	if (GetIsContainStatuses(StatusToAdd.Statuses, true) || !StatusToAdd.Statuses.IsValid()) return false;
-	//if(ApplyStatusLogic(StatusToAdd, )) return false;
 	Statuses.AppendTags(StatusToAdd.Statuses);
 	return true;
 }
@@ -221,30 +244,17 @@ bool UStatusesComponent::MakeTemporaryStatus(const FGameplayTag& StatusToAdd, co
 	return true;
 }
 
-// Apply Status Logic Object
-
-bool UStatusesComponent::ApplyStatusLogic(const FGameplayTag& ApplyStatus, const TEnumAsByte<EStatusState> StatusState)
-{
-	if(!StatusApplyDA || !ApplyStatus.IsValid()) return false;
-	if(!StatusApplyDA->StatusInfo.Contains(ApplyStatus)) return false;
-	auto LocalApplyStatusInfo = StatusApplyDA->StatusInfo.FindRef(ApplyStatus);
-	if(!LocalApplyStatusInfo.StatusApplyInfo.Contains(StatusState)) return false;
-	auto LocalApplicableStatusInfo = LocalApplyStatusInfo.StatusApplyInfo.FindRef(StatusState);
-	/*LocalApplicableStatusInfo.ApplicableStatusInfoArray.Sort([]()
-	{
-		
-	});*/
-	
-	return false;
-}
-
 // Debug Logic
 
 void UStatusesComponent::ShowDebug()
 {
 	if(!GetWorld()) return;
+
+	// Show Constant Statuses
+	FGameplayTagContainer LocalConstantStatuses;
+	GetStatusesByState(Constant,LocalConstantStatuses);
 	FString DebugStringConstantTags = UKismetStringLibrary::JoinStringArray(
-		UKismetStringLibrary::ParseIntoArray(Statuses.ToStringSimple(), ","), "\n");
+		UKismetStringLibrary::ParseIntoArray(LocalConstantStatuses.ToStringSimple(), ","), "\n");
 	UKismetSystemLibrary::PrintString(
 		GetWorld(),
 		"Constant Statuses:\n--------------------------------\n" + DebugStringConstantTags,
@@ -254,6 +264,7 @@ void UStatusesComponent::ShowDebug()
 		0.0f
 	);
 
+	// Show Temporary Statuses
 	TArray<FGameplayTag> TemporaryTagsKeys;
 	TemporaryTags.GetKeys(TemporaryTagsKeys);
 	FString DebugStringTemporaryTags;
